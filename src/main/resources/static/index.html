@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banca Digital UPB - Cajero Inteligente</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 960px; margin: 0 auto; }
+        header { background: #1e293b; color: white; padding: 18px 25px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        header h1 { margin: 0; font-size: 1.4rem; }
+        .saldo-box { background: #0f172a; padding: 12px 20px; border-radius: 8px; text-align: right; border-left: 4px solid #38bdf8; }
+        .saldo-box span { font-size: 0.85rem; color: #94a3b8; display: block; }
+        .saldo-box strong { font-size: 1.5rem; color: #38bdf8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card.critico { border-top: 4px solid #2563eb; grid-column: 1 / -1; }
+        h2 { margin-top: 0; font-size: 1.1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        label { display: block; font-size: 0.85rem; margin-top: 10px; font-weight: 600; color: #475569; }
+        input { width: 100%; padding: 9px; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; }
+        button { margin-top: 15px; width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+        .alerta { margin-top: 15px; padding: 12px; border-radius: 6px; display: none; font-size: 0.9rem; }
+        .alerta.exito { background: #dcfce7; color: #166534; border: 1px solid #86efac; display: block; }
+        .alerta.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; display: block; }
+        .billetes-lista { margin-top: 10px; padding-left: 20px; }
+        .info-bar { font-size: 0.85rem; color: #cbd5e1; margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>🏦 Plataforma de Banca Digital</h1>
+            <div class="info-bar" id="infoTitular">Cargando datos del titular...</div>
+        </div>
+        <div class="saldo-box">
+            <span>Saldo Disponible en Tiempo Real</span>
+            <strong id="textoSaldo">$0 COP</strong>
+            <span id="textoTope" style="font-size: 0.75rem; margin-top: 4px;">Retirado hoy: $0 / $1.000.000 COP</span>
+        </div>
+    </header>
+
+    <div id="mensajeGlobal" class="alerta"></div>
+
+    <div class="grid">
+        <!-- Módulo Crítico: Retiro de Efectivo -->
+        <div class="card critico">
+            <h2>🏧 Retiro de Efectivo (Cajero Automático Inteligente)</h2>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0;">
+                Denominaciones disponibles: <b>$100.000, $50.000, $20.000 y $10.000 COP</b>. 
+                Monto mínimo: <b>$10.000 COP</b> | Tope diario: <b>$1.000.000 COP</b> | PIN por defecto: <b>1234</b>
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+                <div>
+                    <label>Monto a Retirar (COP)</label>
+                    <input type="number" id="montoRetiro" placeholder="Ej: 180000" step="10000">
+                </div>
+                <div>
+                    <label>PIN Transaccional (4 dígitos)</label>
+                    <input type="password" id="pinRetiro" maxlength="4" placeholder="****">
+                </div>
+                <div>
+                    <button onclick="realizarRetiro()" style="padding: 10px 25px; margin: 0;">Dispensar Efectivo</button>
+                </div>
+            </div>
+            <div id="resultadoBilletes" class="alerta" style="margin-top: 15px;"></div>
+        </div>
+
+        <!-- Depósito de Fondos -->
+        <div class="card">
+            <h2>💰 Depósito de Fondos</h2>
+            <label>Monto a Ingresar (COP)</label>
+            <input type="number" id="montoDeposito" placeholder="Ej: 50000">
+            <button onclick="realizarDeposito()">Depositar Dinero</button>
+        </div>
+
+        <!-- Actualización de Datos Personales -->
+        <div class="card">
+            <h2>👤 Actualizar Datos Personales</h2>
+            <label>Correo Electrónico</label>
+            <input type="email" id="inputCorreo">
+            <label>Teléfono</label>
+            <input type="text" id="inputTelefono">
+            <label>Dirección</label>
+            <input type="text" id="inputDireccion">
+            <button onclick="actualizarDatos()">Guardar Datos</button>
+        </div>
+
+        <!-- Modificación de Credenciales -->
+        <div class="card">
+            <h2>🔐 Modificar Credenciales</h2>
+            <p style="font-size: 0.78rem; color: #64748b; margin: 0;">Clave inicial: <b>admin123</b></p>
+            <label>Clave de Acceso Actual</label>
+            <input type="password" id="claveActual" placeholder="Clave actual">
+            <label>Nueva Clave de Acceso</label>
+            <input type="password" id="nuevaClave" placeholder="Mínimo 4 caracteres">
+            <label>Nuevo PIN de Seguridad (4 dígitos)</label>
+            <input type="password" id="nuevoPin" maxlength="4" placeholder="Ej: 4321">
+            <button onclick="cambiarCredenciales()">Actualizar Seguridad</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = '/api/cuenta';
+
+    function formatearCOP(valor) {
+        return '$' + Number(valor).toLocaleString('es-CO') + ' COP';
+    }
+
+    function mostrarMensaje(texto, esExito) {
+        const div = document.getElementById('mensajeGlobal');
+        div.className = 'alerta ' + (esExito ? 'exito' : 'error');
+        div.innerText = texto;
+    }
+
+    async function cargarEstadoCuenta() {
+        const res = await fetch(`${API_URL}/saldo`);
+        const data = await res.json();
+        if (data.exito) {
+            document.getElementById('textoSaldo').innerText = formatearCOP(data.saldoDisponible);
+            document.getElementById('textoTope').innerText = 
+                `Retirado hoy: ${formatearCOP(data.retiradoHoy)} | Cupo disponible hoy:${formatearCOP(data.topeDiarioRestante)}`;
+            document.getElementById('infoTitular').innerText = 
+                `Titular: ${data.titular} | Correo:${data.correo} | Tel: ${data.telefono}`; document.getElementById('inputCorreo').value = data.correo; document.getElementById('inputTelefono').value = data.telefono; document.getElementById('inputDireccion').value = data.direccion; } }  async function realizarDeposito() { const monto = document.getElementById('montoDeposito').value; const res = await fetch(`${API_URL}/deposito`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ monto })
+        });
+        const data = await res.json();
+        mostrarMensaje(data.mensaje, data.exito);
+        if (data.exito) {
+            document.getElementById('montoDeposito').value = '';
+            cargarEstadoCuenta();
+        }
+    }
+
+    async function actualizarDatos() {
+        const correo = document.getElementById('inputCorreo').value;
+        const telefono = document.getElementById('inputTelefono').value;
+        const direccion = document.getElementById('inputDireccion').value;
+
+        const res = await fetch(`${API_URL}/datos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ correo, telefono, direccion }) }); const data = await res.json(); mostrarMensaje(data.mensaje, data.exito); if (data.exito) cargarEstadoCuenta(); }  async function cambiarCredenciales() { const claveActual = document.getElementById('claveActual').value; const nuevaClave = document.getElementById('nuevaClave').value; const nuevoPin = document.getElementById('nuevoPin').value;  const res = await fetch(`${API_URL}/credenciales`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ claveActual, nuevaClave, nuevoPin })
+        });
+        const data = await res.json();
+        mostrarMensaje(data.mensaje, data.exito);
+        if (data.exito) {
+            document.getElementById('claveActual').value = '';
+            document.getElementById('nuevaClave').value = '';
+            document.getElementById('nuevoPin').value = '';
+        }
+    }
+
+    async function realizarRetiro() {
+        const monto = document.getElementById('montoRetiro').value;
+        const pin = document.getElementById('pinRetiro').value;
+        const divBilletes = document.getElementById('resultadoBilletes');
+
+        const res = await fetch(`${API_URL}/retiro`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ monto, pin }) }); const data = await res.json();  if (data.exito) { let html = `<strong>✅ ${data.mensaje}</strong><br>Desglose de billetes entregados (menor cantidad posible):<ul class="billetes-lista">`;
+            for (const [billete, cantidad] of Object.entries(data.billetesDispensados)) {
+                html += `<li><b>${cantidad}</b> billete(s) de <b>${billete}</b></li>`; } html += `</ul>`; divBilletes.className = 'alerta exito'; divBilletes.innerHTML = html; document.getElementById('montoRetiro').value = ''; document.getElementById('pinRetiro').value = ''; cargarEstadoCuenta(); } else { divBilletes.className = 'alerta error'; divBilletes.innerHTML = `<strong>❌ ${data.mensaje}</strong>`;
+        }
+    }
+
+    cargarEstadoCuenta();
+</script>
+
+</body>
+</html>
